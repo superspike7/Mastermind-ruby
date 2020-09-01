@@ -10,7 +10,7 @@ module Game
     arr
   end
 
-   def get_code
+   def prompt_code
     color_code = []
     until color_code.length == 6
       puts "color #{1 + color_code.length}:"
@@ -27,15 +27,15 @@ module Game
 
   def set_code
     puts "set your color code. This are the only valid colors: 'black', 'white', 'red', 'green', 'yellow', 'blue'"
-    get_code
+    prompt_code
   end
 
   def player_guess
     puts "Write down your best guess. This are the only valid colors: 'black', 'white', 'red', 'green', 'yellow', 'blue'"
-    get_code
+    prompt_code
   end
 
-  def guess_checkerr(guess_code, base_code)
+  def guess_checker(guess_code, base_code)
     feedback = guess_code.map.with_index do |color, i|
       if color == base_code[i]
         "+"
@@ -48,14 +48,9 @@ module Game
     feedback
   end
 
-  def smart_guess(guess, feedback) 
-    smart_code = guess.map.with_index do |color, i|
-      color = VALID_COLORS.sample unless feedback[i] == '+'
-    end
-    smart_code
-  end
 
 end
+
 
 
 
@@ -88,6 +83,7 @@ class CodeBreaker
   def initialize(mode)
     @mode = mode
     @guess_count = 12
+    @guess_code = random_colors
   end
 
   def guess
@@ -98,31 +94,40 @@ class CodeBreaker
     @guess_code = random_colors
   end
 
-  def smart_bot
-    @guess_code = smart_guess
+  def smart_guess(feedback=nil)
+    if feedback
+      new_code = @guess_code.map.with_index do |color, i|
+        feedback[i] == '+' ? color = color : color = VALID_COLORS.sample
+        end
+      @guess_code = new_code
+    else
+      self.bot_guess
+    end
+  end
+
 end
 
 
 
 
 include Game
-
-puts "do you want to be (1)Codemaker? or (2)Codebreaker?"
+puts "let's play Mastermind!"
+puts "do you want to be (1)Codebreaker? or (2)Codemaker? " 
 choice = gets.chomp.to_i
 if choice == 1
-  puts "you choosed to be Codemaker"
-  player = CodeMaker.new('player')
-  bot = CodeBreaker.new('bot')
-  bot.bot_guess
-  player.player_mode
-  puts "your code is '#{player.code.join('-')}'"
-  option1 = true
-elsif choice == 2
-  puts "you choosed to be Codebreaker"
+  puts "you choosed to be Codebreaker "
   bot = CodeMaker.new('bot')
   player = CodeBreaker.new('player')
   bot.bot_mode
-  puts "bot has set his code, start guessing now"
+  puts " Bot has set his code, start guessing now! "
+  puts "'+' means the color is in correct order, 'X' means the color is in the incorrect order and '-' means the color is not in the set" 
+  option1 = true
+elsif choice == 2
+  puts "you choosed to be Codemaker"
+  player = CodeMaker.new('player')
+  bot = CodeBreaker.new('bot')
+  player.player_mode
+  puts "your code is '#{player.code.join('-')}'"
   option2 = true
 else 
   puts "you can only choose (1) or (2)"
@@ -131,51 +136,56 @@ end
 
 round = 0
 
-# while option1
-
-#   guess = bot.guess_code
-#   base = player.code
-#   feedback = Game::guess_checkerr(guess, base)
-
-#   puts "guess ##{round + 1}"
-#   puts "bot guessed: '#{guess.join('-')}'"
-#   puts "status: '#{feedback.join('|')}'"
-
-#   round += 1
-#   if guess == base
-#     puts "bot wins! he successfully guessed your code!"
-#     break 
-#   elsif round == 12
-#     puts "bot lose! ran out of guesses"
-#     break
-#   end
+while option1
 
 
-#   puts "bot is thinking..."
-#   sleep 2
-#   puts "..."
+  guess = player.guess
+  base = bot.code
+  feedback = Game.guess_checker(guess, base)
 
-# end
+  puts " guess ##{round + 1}, you have #{9 - round} more guesses "
+  puts "player guessed: '#{guess.join('-')}' "
+  puts "status: '#{feedback.join('|')}' "
+
+  round += 1
+  if guess == base
+    puts "player wins! you successfully guessed bot's code!"
+    puts "\n congrats!"
+    break 
+  elsif round == 10
+    puts "the correct code is: #{base.join('-')}"
+    puts "player lose! ran out of guesses"
+    break
+  end
+end
 
 
-# while option2
 
-#   guess = player.guess
-#   base = bot.code
-#   feedback = Game.guess_checker(guess, base)
+while option2
 
-#   puts "guess ##{round + 1}"
-#   puts "player guessed: '#{guess.join('-')}'"
-#   puts "status: '#{feedback.join('|')}'"
 
-#   round += 1
-#   if guess == base
-#     puts "player wins! he successfully guessed bot's code!"
-#     break 
-#   elsif round == 12
-#     puts "the correct code is: #{base.join('-')}"
-#     puts "player lose! ran out of guesses"
-#     break
-#   end
+  guess = bot.smart_guess(feedback)
+  base = player.code
+  feedback = Game::guess_checker(guess, base)
 
-end # end
+  puts "guess ##{round + 1}, #{9 - round} left"
+  puts "bot guessed: '#{guess.join('-')}'"
+  puts "status: '#{feedback.join('|')}'"
+
+  round += 1
+  if guess == base
+    puts "bot wins! he successfully guessed your code!"
+    break 
+  elsif round == 10
+    puts "bot lose! ran out of guesses"
+    break
+  end
+
+
+  puts "bot is thinking..."
+  sleep 2
+  puts "..."
+
+end
+
+
